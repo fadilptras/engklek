@@ -7,8 +7,6 @@ class OpeningScene(Entity):
         self.game_controller = game_controller
         color.pohon = color.rgb(118/255, 69/255, 59/255)
 
-        # Entitas-entitas ini sekarang jadi 'anak' dari OpeningScene
-        # Saat OpeningScene dihancurkan, semua anaknya ikut hancur.
         self.background = Entity(
             parent=self, model='quad', texture='assets/img/opening-bg.png',
             scale=(camera.aspect_ratio, 1), z=10
@@ -31,8 +29,5 @@ class OpeningScene(Entity):
             self.progress += 20 * time.dt
             self.progress_bar.scale_x = min(self.progress / 100 * self.bar_width, self.bar_width)
         else:
-            # 1. Nonaktifkan update untuk scene ini terlebih dahulu.
             self.enabled = False
-            
-            # 2. Baru panggil controller untuk menghancurkan scene ini dan pindah ke scene berikutnya.
             self.game_controller.go_to_main_menu()
