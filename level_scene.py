@@ -1,19 +1,17 @@
+# level_scene.py
 from ursina import *
 from ursina.prefabs.first_person_controller import FirstPersonController
 from ursina.shaders import lit_with_shadows_shader
+from levels import level_data 
 
 class LevelScene(Entity):
     def __init__(self, game_controller, level_num, **kwargs):
-        super().__init__(**kwargs) # Parent scene ini adalah scene 3D, bukan camera.ui
-        
+        super().__init__(**kwargs)
         self.game_controller = game_controller
         self.level_num = level_num
-        
-        # Entitas yang spesifik untuk level ini akan disimpan di sini
-        # agar mudah dihancurkan saat keluar dari level.
         self.level_entities = []
+        self.initialized = False 
 
-        # Atur environment
         Entity.default_shader = lit_with_shadows_shader
         Text.default_font = 'assets/font/CaliforniaVibes.ttf'
         mouse.locked = True
@@ -27,36 +25,40 @@ class LevelScene(Entity):
         self.level_entities.append(self.ground)
 
         self.tiles = []
-        # Pola level bisa dieksternalisasi ke file konfigurasi jika ingin lebih rapi
-        tile_positions = [
-            (0, 12, 1), (0, 11, 2), (0, 10, 3), (-0.5, 9, 4), (0.5, 9, 4),
-            (0, 8, 5), (-0.5, 7, 6), (0.5, 7, 6), (-1, 6, 7), (0, 6, 7),
-            (1, 6, 7), (0, 5, 7)
-        ]
+
+        current_level_data = level_data.get(self.level_num)
+        if not current_level_data:
+            print(f"Error: Data untuk level {self.level_num} tidak ditemukan!")
+            self.game_controller.go_to_level_selection()
+            return 
+
+        tile_positions = current_level_data['tiles']
+        red_tiles_config = current_level_data.get('red_tiles', [])
+
         for x, z, num in tile_positions:
-            self._make_tile(x, z, num)
-            
-        # Player Setup
+            is_red_tile = (x, z, num) in red_tiles_config
+            self._make_tile(x, z, num, is_red_tile=is_red_tile)
+
+        player_start_offset = current_level_data.get('player_start_offset', Vec3(0, 1, 0))
         self.player = FirstPersonController(
             model='cube', color=color.white33, origin_y=-0.5, collider='box', speed=5,
-            position=self.tiles[0].position + Vec3(0, 1, 0), gravity=1, jump_height=1.5,
-            jump_duration=0.4
+            position=self.tiles[0].position + player_start_offset, gravity=1, jump_height=1.5,
+            jump_duration=0.6
         )
         self.player.collider = BoxCollider(self.player, Vec3(0, 1, 0), Vec3(0.8, 2, 0.8))
         self.level_entities.append(self.player)
-        self.player.speed = 0  # Disable default movement
-        self.movement_enabled = False  # Flag untuk pergerakan manual
+        self.player.speed = 0
+        self.movement_enabled = False
 
-
-        # UI Setup
         self._setup_ui()
-
-    def _make_tile(self, x, z, number):
-        is_win_flag = (number == 7)
-        red_tile = (number == 2)
         
+        self.initialized = True 
+
+    def _make_tile(self, x, z, number, is_red_tile=False):
+        is_win_flag = (number == 7)
+
         if is_win_flag: current_tile_color = color.green
-        elif red_tile: current_tile_color = color.red
+        elif is_red_tile: current_tile_color = color.red
         else: current_tile_color = color.white
 
         tile = Entity(
@@ -64,6 +66,7 @@ class LevelScene(Entity):
             position=(x, 0.1, z), texture='white_cube', collider='box'
         )
         tile.is_win = is_win_flag
+        tile.is_red = is_red_tile
         self.level_entities.append(tile)
 
         text = Text(parent=tile, text=str(number), color=color.black, scale=5,
@@ -78,9 +81,8 @@ class LevelScene(Entity):
         
         self.retry_button = Button(text='mau ulang gak?', color=color.black, scale=(0.15, 0.05), position=(-0.1, -0.1), on_click=self.retry_level, enabled=False)
         self.back_button = Button(text='coba level lain yuk!', color=color.black, scale=(0.20, 0.05), position=(0.08, -0.1), on_click=self.back_to_menu, enabled=False)
-        self.next_button = Button(text='lanjut level 2 ahh', color=color.black, scale=(0.25, 0.05), position=(0, -0.1), on_click=self.back_to_menu, enabled=False)
+        self.next_button = Button(text='lanjut level ahh', color=color.black, scale=(0.25, 0.05), position=(0, -0.1), on_click=self.back_to_menu, enabled=False)
         
-        # UI juga bagian dari level_entities agar ikut hancur
         self.level_entities.extend([self.win_text, self.lose_text, self.retry_button, self.back_button, self.next_button])
 
     def retry_level(self):
@@ -102,19 +104,24 @@ class LevelScene(Entity):
         self.game_controller.go_to_level_selection()
 
     def input(self, key):
+        if not self.initialized:
+            return
+
         if application.paused or self.lose_text.enabled:
             return
 
         if key == 'space' and self.player.grounded:
             self.player.jump_height = 2.8 if held_keys['left shift'] else 1.5
             self.player.jump()
-            self.movement_enabled = True  # Hanya aktif saat loncat
+            self.movement_enabled = True
 
     def update(self):
+        if not self.initialized: 
+            return
+
         if application.paused or self.win_text.enabled:
             return
 
-        # Manual movement control
         if self.movement_enabled and not self.player.grounded:
             direction = Vec3(
                 int(held_keys['d']) - int(held_keys['a']),
@@ -124,31 +131,38 @@ class LevelScene(Entity):
             self.player.position += self.player.forward * direction.z * time.dt * 5
             self.player.position += self.player.right * direction.x * time.dt * 5
         else:
-            self.movement_enabled = False  # Matikan movement kalau grounded lagi
+            self.movement_enabled = False
 
-        # Posisi pemain sekarang
         player_pos = self.player.position
 
-        # Cek apakah berada di atas tile
         on_tile = any(
             abs(player_pos.x - t.x) < t.scale_x / 2 and abs(player_pos.z - t.z) < t.scale_z / 2
             for t in self.tiles
         )
 
-        # Menang jika injak petak hijau
         stepped_on_win_tile = any(
             t.is_win and abs(player_pos.x - t.x) < t.scale_x / 2 and abs(player_pos.z - t.z) < t.scale_z / 2
             for t in self.tiles
         )
 
         if stepped_on_win_tile:
-            self.win_text.enabled = True
-            self.next_button.enabled = True
             mouse.locked = False
             application.paused = True
+            
+            next_level_exists = (self.level_num + 1) in level_data
+
+            if next_level_exists:
+                self.win_text.enabled = True
+                self.next_button.enabled = True
+                self.next_button.on_click = lambda: self.game_controller.start_level(self.level_num + 1)
+            else:
+                self.win_text.text = 'SELAMAT, SEMUA LEVEL SELESAI!'
+                self.win_text.enabled = True
+                self.back_button.enabled = True
+                self.back_button.position = (0, -0.1) 
+
             return
 
-        # Kalah jika jatuh
         if not on_tile and player_pos.y < self.ground.y + 0.5:
             self.lose_text.enabled = True
             self.retry_button.enabled = True
@@ -157,9 +171,8 @@ class LevelScene(Entity):
             application.paused = True
             return
 
-        # Kalah jika benar-benar menginjak tengah petak merah
         for t in self.tiles:
-            if t.color == color.red:
+            if t.is_red:
                 if distance_2d((player_pos.x, player_pos.z), (t.x, t.z)) < 0.3 and abs(player_pos.y - t.y) < 1:
                     self.lose_text.enabled = True
                     self.retry_button.enabled = True
@@ -167,17 +180,14 @@ class LevelScene(Entity):
                     mouse.locked = False
                     application.paused = True
                     return
-            
+
     def on_destroy(self):
         """Dipanggil otomatis oleh Ursina saat `destroy(self)` dieksekusi."""
-        # Membersihkan semua entitas yang dibuat secara manual
-        # Ini PENTING untuk mencegah memory leak.
         for e in self.level_entities:
             destroy(e)
         self.level_entities.clear()
         
-        # Mengembalikan shader default jika diubah
         Entity.default_shader = None
 
-    def distance_2d(a, b):
-        return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
+def distance_2d(a, b):
+    return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
