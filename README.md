@@ -1,6 +1,8 @@
 # Game Engklek 3D
 Selamat datang di repositori game Engklek 3D! Ini adalah sebuah prototipe game yang dibuat menggunakan Ursina Engine, sebuah game engine berbasis Python. Game ini mengadaptasi permainan tradisional Indonesia, Engklek, ke dalam format 3D first-person.
 
+https://github.com/fadilptras/engklek/issues/1#issue-3192534517
+
 # Deskripsi
 Game ini menantang pemain untuk melompat melintasi serangkaian petak (ubin) untuk mencapai petak kemenangan. Mirip seperti engklek, ada aturan yang harus diikuti: pemain tidak boleh jatuh dari petak dan tidak boleh menginjak petak terlarang berwarna merah.
 
