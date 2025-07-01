@@ -32,15 +32,12 @@ class LevelSelectionScene(Entity):
 
         Entity(parent=self, model='quad', texture='assets/img/level-bg.png', scale_x=camera.aspect_ratio, z=4)
 
-        # Tombol kembali ke menu utama
         Button(
             parent=self, text='Gajadi Main', scale=(0.15, 0.05), position=(0.7, 0.4),
             color=color.merahredup, on_click=self.game_controller.go_to_main_menu
         )
         
-        # Membuat tombol level
-        # Anda bisa menyesuaikan jumlah level yang ditampilkan di sini
-        max_levels = 11 # Sesuaikan dengan jumlah level yang Anda miliki di levels.py
+        max_levels = 11 
         for i in range(max_levels):
             x = i * 0.15 - 0.3 if i < 5 else (i - 5) * 0.15 - 0.375
             y = 0.3 if i < 5 else 0.17
@@ -53,5 +50,4 @@ class LevelSelectionScene(Entity):
             )
 
     def start_selected_level(self, level_num):
-        # Langsung mulai level yang dipilih
         self.game_controller.start_level(level_num)
