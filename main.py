@@ -9,7 +9,6 @@ class GameController:
         self.app = app
         self.current_scene = None
 
-        # Inisialisasi Pygame Mixer sekali saja
         pygame.init()
         pygame.mixer.music.load('assets/music/cublak-cublak.mp3')
         pygame.mixer.music.play(-1)
@@ -19,7 +18,6 @@ class GameController:
         """Menghancurkan scene saat ini sebelum beralih ke scene baru."""
         if self.current_scene:
             print(f"Clearing scene: {self.current_scene.__class__.__name__}")
-            # Semua entitas anak akan hancur bersama parent-nya
             destroy(self.current_scene)
             self.current_scene = None
 
@@ -40,14 +38,12 @@ class GameController:
         self.current_scene = LevelScene(game_controller=self, level_num=level_num)
 
 if __name__ == '__main__':
-    app = Ursina(title='Engklek', size=(1280, 720))
+    app = Ursina(title='Engklek', fullscreen=True)
 
-    # Pengaturan global scene
     Sky()
     sun = DirectionalLight(shadows=True)
     sun.look_at(Vec3(1, -1, -1))
 
-    # Buat instance controller dan mulai game dari opening screen
     game_controller = GameController(app)
     game_controller.go_to_opening()
 
