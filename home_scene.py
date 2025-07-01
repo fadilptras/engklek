@@ -1,3 +1,4 @@
+# home_scene.py
 from ursina import *
 
 class MainMenuScene(Entity):
@@ -38,11 +39,12 @@ class LevelSelectionScene(Entity):
         )
         
         # Membuat tombol level
-        for i in range(11):
+        # Anda bisa menyesuaikan jumlah level yang ditampilkan di sini
+        max_levels = 11 # Sesuaikan dengan jumlah level yang Anda miliki di levels.py
+        for i in range(max_levels):
             x = i * 0.15 - 0.3 if i < 5 else (i - 5) * 0.15 - 0.375
             y = 0.3 if i < 5 else 0.17
             
-            # Menggunakan lambda untuk menangkap nilai 'i' saat ini
             level_num = i + 1
             Button(
                 parent=self, model='circle', text=str(level_num), color=color.ijoterang,
@@ -51,7 +53,5 @@ class LevelSelectionScene(Entity):
             )
 
     def start_selected_level(self, level_num):
-        if level_num == 1:
-            self.game_controller.start_level(level_num)
-        else:
-            print(f"Level {level_num} belum dibuat.")
+        # Langsung mulai level yang dipilih
+        self.game_controller.start_level(level_num)
